@@ -10,7 +10,7 @@ __pycache__/
 .idea
 
 # python env
-.myenv
+myenv
 
 # Distribution / packaging
 .Python
