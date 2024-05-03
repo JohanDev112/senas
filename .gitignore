@@ -9,6 +9,9 @@ __pycache__/
 # .idea files
 .idea
 
+# python env
+.myenv
+
 # Distribution / packaging
 .Python
 build/
