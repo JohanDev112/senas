@@ -1,3 +1,5 @@
+#calcular angulos
+
 import mediapipe as mp
 from math import degrees, acos
 import numpy as np
@@ -147,3 +149,5 @@ def obtenerAngulos(results, width, height):
                 #       "indice:", angle4, "pulgar 1:", angle5, "pulgar 2:", angle6)
                 # print (angle1, angle2, angle3, angle4, angle5, angle6)
     return [angulosid, coordenadasYAngulos]
+
+#%%

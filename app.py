@@ -1,5 +1,6 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget
+import time
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton
 from PyQt5.QtGui import QPixmap, QImage
 import cv2
 import mediapipe as mp
@@ -30,6 +31,11 @@ class MainWindow(QMainWindow):
         self.info_label.setStyleSheet("font-weight: bold; color: white; background-color: #333333; padding: 5px;")
         layout.addWidget(self.info_label)
 
+        # Crear un botón para limpiar las letras detectadas
+        self.boton_limpiar = QPushButton("Limpiar letras")
+        self.boton_limpiar.clicked.connect(self.limpiar_letras_detectadas)
+        layout.addWidget(self.boton_limpiar)
+
         # Iniciar la cámara
         self.cap = cv2.VideoCapture(0)
         self.wCam, self.hCam = 1280, 720
@@ -45,6 +51,10 @@ class MainWindow(QMainWindow):
             max_num_hands=2,
             min_detection_confidence=0.75
         )
+
+        # Inicializar variables para almacenar letras detectadas
+        self.letras_detectadas = ""
+        self.ultima_actualizacion = 0.0
 
         # Iniciar el temporizador para actualizar la imagen de la cámara
         self.timer = self.startTimer(30)
@@ -82,7 +92,8 @@ class MainWindow(QMainWindow):
                             dedos.append(1)
                         else:
                             dedos.append(0)
-                    condicionalesLetras(dedos, frame)
+                    letra_detectada = condicionalesLetras(dedos, frame)
+                    self.actualizar_letras_detectadas(letra_detectada)
 
                     self.mp_drawing.draw_landmarks(
                         frame,
@@ -100,7 +111,16 @@ class MainWindow(QMainWindow):
             # Establecer la imagen en la etiqueta
             self.image_label.setPixmap(pixmap)
 
+    def actualizar_letras_detectadas(self, nueva_letra):
+        tiempo_actual = time.time()
+        if (tiempo_actual - self.ultima_actualizacion) >= 1.0:  # Verificar si han pasado 2 segundos
+            self.letras_detectadas += nueva_letra
+            self.info_label.setText(f"Letras detectadas: {self.letras_detectadas}")
+            self.ultima_actualizacion = tiempo_actual
 
+    def limpiar_letras_detectadas(self):
+        self.letras_detectadas = ""
+        self.info_label.setText("Letras detectadas: ")
 
     def closeEvent(self, event):
         self.cap.release()
