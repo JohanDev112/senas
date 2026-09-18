@@ -97,7 +97,7 @@ def main() -> None:
         json.dumps(list(label_encoder.classes_), ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(f"\nModelo guardado en {out_dir}/hand_letters.keras (+ scaler.npz, labels.json)")
-    print("Siguiente paso: uv run ml/export_tflite.py")
+    print("Siguiente paso: uv run ml/export_web_model.py")
 
 
 if __name__ == "__main__":
