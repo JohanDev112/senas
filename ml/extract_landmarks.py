@@ -1,4 +1,4 @@
-"""Corre MediaPipe Hands sobre el dataset estatico y arma el CSV de entrenamiento.
+"""Corre MediaPipe Hands sobre el dataset estatico y guarda los landmarks crudos.
 
 El dataset de Zenodo trae solo imagenes + etiqueta por carpeta/nombre de
 archivo (sin landmarks). Este script:
@@ -7,12 +7,17 @@ archivo (sin landmarks). Este script:
   2. Detecta la letra (carpeta) y, si es posible, el participante (para
      poder partir train/test por persona y no por foto suelta).
   3. Corre MediaPipe Hands sobre cada imagen para obtener los 21 landmarks.
-  4. Calcula el vector de 15 features con ml/feature_extraction.py.
-  5. Guarda todo en un CSV: label, participant, f0..f14.
+  4. Guarda todo en un CSV: label, participant, x0..x20, y0..y20.
+
+Guarda landmarks crudos (no el vector de features ya calculado) a proposito:
+correr MediaPipe sobre las ~280k imagenes tarda ~70 min, así que separar
+esto de `build_features.py` permite iterar sobre el diseño de features
+(agregar/quitar distancias o angulos) sin tener que repetir ese paso caro
+cada vez -- solo la primera vez.
 
 Uso:
-    uv run ml/extract_features.py --limit 500   # validar el pipeline rapido
-    uv run ml/extract_features.py                # dataset completo
+    uv run ml/extract_landmarks.py --limit 500   # validar el pipeline rapido
+    uv run ml/extract_landmarks.py                # dataset completo
 """
 from __future__ import annotations
 
@@ -25,8 +30,6 @@ import mediapipe as mp
 import pandas as pd
 from tqdm import tqdm
 
-from feature_extraction import FEATURE_NAMES, hand_features
-
 IMAGE_EXTS = {".jpg", ".jpeg", ".png"}
 
 # Letras estaticas cubiertas por el dataset (las dinamicas J/K/N/Q/X/Z
@@ -38,6 +41,8 @@ PARTICIPANT_PATTERNS = [
     re.compile(r"(?:^|[\\/_\-])[Ss](\d+)-"),
     re.compile(r"(?:^|[_\-])(?:p|sujeto|participant|signer)[_\-]?(\d+)", re.IGNORECASE),
 ]
+
+LANDMARK_COLUMNS = [f"{axis}{i}" for i in range(21) for axis in ("x", "y")]
 
 
 def guess_label(path: Path) -> str | None:
@@ -69,7 +74,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", default=str(Path(__file__).parent / "data" / "raw" / "static"),
                          help="carpeta con las imagenes descargadas (ya descomprimidas)")
-    parser.add_argument("--out", default=str(Path(__file__).parent / "data" / "features.csv"))
+    parser.add_argument("--out", default=str(Path(__file__).parent / "data" / "landmarks.csv"))
     parser.add_argument("--limit", type=int, default=None,
                          help="procesar solo N imagenes (para validar el pipeline antes del dataset completo)")
     parser.add_argument("--min-confidence", type=float, default=0.5)
@@ -109,11 +114,10 @@ def main() -> None:
                 continue
 
             landmarks = result.multi_hand_landmarks[0].landmark
-            points = [(lm.x, lm.y) for lm in landmarks]
-            features = hand_features(points)
-
             row = {"label": label, "participant": guess_participant(path) or "unknown", "path": str(path)}
-            row.update(dict(zip(FEATURE_NAMES, features)))
+            for i, lm in enumerate(landmarks):
+                row[f"x{i}"] = lm.x
+                row[f"y{i}"] = lm.y
             rows.append(row)
 
     if not rows:
@@ -130,6 +134,7 @@ def main() -> None:
     if df["participant"].nunique() <= 1:
         print("\nAVISO: no se pudo inferir el participante de la ruta/nombre de archivo.")
         print("train.py hara un split aleatorio en vez de un split por persona (menos riguroso).")
+    print("\nSiguiente paso: uv run ml/build_features.py")
 
 
 if __name__ == "__main__":
