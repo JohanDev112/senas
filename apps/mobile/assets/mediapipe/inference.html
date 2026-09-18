@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="margin:0;background:#000">
+<script src="vision_bundle.js"></script>
+<script>
+  // Puente headless: recibe fotogramas en base64 desde React Native, corre
+  // MediaPipe HandLandmarker (WASM, 100% local, sin red) y devuelve los 21
+  // landmarks por postMessage. No hace clasificacion aqui -- eso vive en
+  // src/ml/classifier.ts del lado de React Native, para poder cambiar entre
+  // el clasificador por reglas y el modelo entrenado sin tocar este puente.
+
+  var handLandmarker = null;
+  var initError = null;
+  var img = new Image();
+
+  function post(message) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify(message));
+    }
+  }
+
+  function toPlainLandmarks(mpLandmarks) {
+    var out = new Array(mpLandmarks.length);
+    for (var i = 0; i < mpLandmarks.length; i++) {
+      out[i] = [mpLandmarks[i].x, mpLandmarks[i].y, mpLandmarks[i].z];
+    }
+    return out;
+  }
+
+  function handleFrame(id, base64) {
+    if (!handLandmarker) {
+      post({ type: "result", id: id, landmarks: null, error: initError || "not_ready" });
+      return;
+    }
+    img.onload = function () {
+      try {
+        var result = handLandmarker.detect(img);
+        var landmarks = result && result.landmarks && result.landmarks.length > 0
+          ? toPlainLandmarks(result.landmarks[0])
+          : null;
+        post({ type: "result", id: id, landmarks: landmarks });
+      } catch (e) {
+        post({ type: "result", id: id, landmarks: null, error: String(e) });
+      }
+    };
+    img.onerror = function () {
+      post({ type: "result", id: id, landmarks: null, error: "image_decode_failed" });
+    };
+    img.src = "data:image/jpeg;base64," + base64;
+  }
+
+  function onMessage(event) {
+    var data;
+    try {
+      data = JSON.parse(event.data);
+    } catch (e) {
+      return;
+    }
+    if (data.type === "frame") {
+      handleFrame(data.id, data.base64);
+    }
+  }
+
+  document.addEventListener("message", onMessage); // Android
+  window.addEventListener("message", onMessage); // iOS
+
+  (async function init() {
+    try {
+      var wasmFileset = {
+        wasmLoaderPath: "vision_wasm_internal.js",
+        wasmBinaryPath: "vision_wasm_internal.wasm",
+      };
+      handLandmarker = await Vision.HandLandmarker.createFromOptions(wasmFileset, {
+        baseOptions: {
+          modelAssetPath: "hand_landmarker.task",
+          delegate: "CPU",
+        },
+        runningMode: "IMAGE",
+        numHands: 1,
+        minHandDetectionConfidence: 0.5,
+        minHandPresenceConfidence: 0.5,
+      });
+      post({ type: "ready" });
+    } catch (e) {
+      initError = String(e);
+      post({ type: "error", message: initError });
+    }
+  })();
+</script>
+</body>
+</html>

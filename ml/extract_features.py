@@ -34,6 +34,8 @@ IMAGE_EXTS = {".jpg", ".jpeg", ".png"}
 VALID_LABELS = set("ABCDEFGHILMNOPRSTUVWY")
 
 PARTICIPANT_PATTERNS = [
+    # nombre real del dataset: S1-N-1-0.jpg -> signer 1, letra N
+    re.compile(r"(?:^|[\\/_\-])[Ss](\d+)-"),
     re.compile(r"(?:^|[_\-])(?:p|sujeto|participant|signer)[_\-]?(\d+)", re.IGNORECASE),
 ]
 
