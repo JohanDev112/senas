@@ -133,3 +133,22 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ml/ pipeline: dataset + generated artifacts are regenerated via ml/README.md,
+# not committed. The final .tflite that ships in the app lives under
+# apps/mobile/assets/models/ instead, and IS tracked.
+ml/data/
+ml/models/
+
+# Node / Expo / EAS
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.jks
+*.p12
+*.key
+*.mobileprovision
+apps/backend/__pycache__/
+apps/backend/.venv/

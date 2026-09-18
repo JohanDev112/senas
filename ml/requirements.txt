@@ -1,0 +1,18 @@
+# Pipeline de entrenamiento. Usar Python 3.11 (TensorFlow todavia no soporta
+# Python 3.14, que es lo que hay instalado como interprete global).
+#
+# Setup con uv (ya disponible en la maquina):
+#   uv venv --python 3.11 ml/.venv
+#   uv pip install --python ml/.venv -r ml/requirements.txt
+
+numpy<2
+opencv-python
+# 0.10.x trae la API legacy `mediapipe.solutions.hands` que usa este pipeline;
+# mediapipe>=1.0 la elimino en favor de la Tasks API (mediapipe.tasks).
+mediapipe==0.10.21
+pandas
+scikit-learn
+tensorflow==2.17.0
+requests
+tqdm
+py7zr  # el dataset de Zenodo viene empaquetado como .7z, no .zip
