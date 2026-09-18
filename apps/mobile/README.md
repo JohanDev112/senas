@@ -38,7 +38,7 @@ El perfil `preview` de `eas.json` genera un `.apk` instalable directo (no
 
 - `src/ml/extractFeatures.ts` es el port exacto de `ml/feature_extraction.py`.
 - `assets/models/hand_letters_weights.json` es el destino de
-  `ml/export_web_model.py`. Ya trae el modelo entrenado (88.5% de accuracy
+  `ml/export_web_model.py`. Ya trae el modelo entrenado (92.0% de accuracy
   en test por participante, ver `ml/README.md` para el detalle por letra);
   si algún día se regenera vacío (`"trained": false`), la app cae sola al
   clasificador por reglas (`src/ml/rulesClassifier.ts`) — ver
@@ -52,7 +52,7 @@ El perfil `preview` de `eas.json` genera un `.apk` instalable directo (no
 
 - Letras dinámicas (J, K, Ñ, Q, X, Z) — necesitan un modelo temporal, ver
   `ml/README.md`.
-- Mejorar R/V/U/H (las más confundibles con el modelo actual, ver
+- Mejorar T/S/A (las más confundibles con el modelo actual, ver
   `ml/README.md`).
 - Build de iOS (el plugin de assets de MediaPipe solo copia para Android
   por ahora).

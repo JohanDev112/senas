@@ -77,18 +77,28 @@ Sobre las 279,716 imagenes (276,153 con mano detectada por MediaPipe,
 98.7%), evaluando en un split **por participante** (4 de los 20 firmantes
 apartados enteros para test, nunca vistos en entrenamiento):
 
-- **Accuracy global: 88.5%**
-- Mejor: C 99.2%, B 97.2%, P 96.1%, W 96.0%, Y 96.0%, D 95.0%
-- Peor: R 62.3%, V 73.4%, U 79.0%, H 82.7%
+- **Accuracy global: 92.0%** (19 features, con las 4 distancias entre
+  puntas de dedos vecinos)
+- Mejor: C 99.7%, W 97.1%, D 96.9%, B 96.9%, L 95.7%, I 95.7%
+- Peor: T 72.3%, R 84.4%, H 86.6%, M 89.1%, N 89.2%
 
-R/V/U/H son las mas confundibles entre si con este vector de 15 features
-(dependen mucho de como se cruzan los dedos, algo que angulos+distancias
-respecto a la muneca no capturan tan bien). Si hace falta mas precision ahi,
-el siguiente paso natural es agregar features de posicion relativa
-entre puntas de dedos (no solo cada una contra la muneca), no necesariamente
-un modelo mas grande.
+**Primera vuelta** (solo 10 angulos + 5 distancias contra la muneca, sin
+las distancias entre puntas): 88.5% global, con R (62.3%), V (73.4%),
+U (79.0%) y H (82.7%) muy por debajo del resto -- se confundian sobre todo
+por como se cruzan/separan el indice y el medio, algo que un angulo o una
+distancia contra la muneca no ve. Agregar 4 distancias entre puntas de
+dedos vecinos (`ml/feature_extraction.py::ADJACENT_TIP_PAIRS`) subio esas
+cuatro letras a 84-92% y el global a 92.0%.
 
-Se valido ademas que el forward pass a mano en TypeScript
+El costo: **T bajo** de 84.9% a 72.3%, ahora la letra mas debil. Se
+confunde sobre todo con S (649 casos) y A (96 casos) en el set de test --
+las tres son puños cerrados que solo se diferencian por donde exactamente
+queda el pulgar, algo que las 19 features actuales todavia no ubican con
+precision. El siguiente paso natural ahi es una feature de posicion del
+pulgar relativa a los nudillos de los otros dedos (no solo su angulo y su
+distancia a la punta del indice).
+
+Se valido en ambas vueltas que el forward pass a mano en TypeScript
 (`apps/mobile/src/ml/modelClassifier.ts`) reproduce **exactamente** las
 predicciones de Keras (mismas etiquetas y confianzas hasta redondeo) sobre
 una muestra cruzada -- incluyendo los casos donde el modelo se equivoca.
@@ -118,7 +128,7 @@ las mismas 19 features en tiempo real.
 ## Como se exporta e integra en la app
 
 `export_web_model.py` no genera un `.tflite`: guarda los pesos de la red
-(`Dense.get_weights()`) como JSON plano (`hand_letters_weights.json`, ~47 KB)
+(`Dense.get_weights()`) como JSON plano (`hand_letters_weights.json`, ~50 KB)
 junto con la media/desviacion del `StandardScaler` y la lista de labels.
 `apps/mobile/src/ml/modelClassifier.ts` hace el forward pass a mano
 (multiplicar matrices + ReLU/softmax) en TypeScript -- para una red de
@@ -134,6 +144,6 @@ JSON tiene `trained: true`.
   landmarks en el tiempo, no una sola pose. El dataset dinamico ya esta
   soportado por `download_dataset.py --which dynamic`; falta el pipeline de
   extraccion de secuencias + un modelo temporal (ej. 1D-CNN o LSTM chico).
-- **Mejorar R/V/U/H:** agregar features de posicion relativa entre puntas
-  de dedos (no solo respecto a la muneca) antes de pensar en un modelo mas
-  grande.
+- **Mejorar T/S/A (se confunden entre si):** agregar una feature de
+  posicion del pulgar relativa a los nudillos de los otros dedos, no solo
+  su angulo y su distancia a la punta del indice.

@@ -1,7 +1,7 @@
 /**
  * Port exacto de ml/feature_extraction.py: toma los 21 landmarks de una mano
  * (los que devuelve src/ml/handLandmarker.ts) y calcula el mismo vector de
- * 15 numeros invariantes a escala/traslacion con el que se entrena el
+ * 19 numeros invariantes a escala/traslacion con el que se entrena el
  * clasificador en ml/train.py. Si cambia uno, cambia el otro.
  */
 export type Point = { x: number; y: number };
@@ -15,6 +15,16 @@ const RING = [13, 14, 15, 16] as const;
 const PINKY = [17, 18, 19, 20] as const;
 const FINGERS = [THUMB, INDEX, MIDDLE, RING, PINKY] as const;
 
+// pares de puntas de dedos adyacentes -- distinguen letras como R/V/U/H que
+// dependen de como se cruzan/juntan/separan el indice y el medio, algo que
+// los angulos y las distancias contra la muneca por si solos no capturan.
+const ADJACENT_TIP_PAIRS = [
+  ["thumb_index_tip_gap", THUMB[THUMB.length - 1], INDEX[INDEX.length - 1]],
+  ["index_middle_tip_gap", INDEX[INDEX.length - 1], MIDDLE[MIDDLE.length - 1]],
+  ["middle_ring_tip_gap", MIDDLE[MIDDLE.length - 1], RING[RING.length - 1]],
+  ["ring_pinky_tip_gap", RING[RING.length - 1], PINKY[PINKY.length - 1]],
+] as const;
+
 export const FEATURE_NAMES = [
   "thumb_cmc_angle", "thumb_mcp_angle",
   "index_mcp_angle", "index_pip_angle",
@@ -23,6 +33,7 @@ export const FEATURE_NAMES = [
   "pinky_mcp_angle", "pinky_pip_angle",
   "thumb_tip_dist", "index_tip_dist", "middle_tip_dist",
   "ring_tip_dist", "pinky_tip_dist",
+  ...ADJACENT_TIP_PAIRS.map(([name]) => name),
 ] as const;
 
 export const NUM_FEATURES = FEATURE_NAMES.length;
@@ -44,7 +55,7 @@ function angleAt(points: HandLandmarks, a: number, b: number, c: number): number
   return (Math.acos(cos) * 180) / Math.PI;
 }
 
-/** Calcula el vector de 15 features a partir de 21 landmarks (x, y). */
+/** Calcula el vector de 19 features a partir de 21 landmarks (x, y). */
 export function handFeatures(points: HandLandmarks): number[] {
   if (points.length !== 21) {
     throw new Error(`se esperaban 21 landmarks, se recibieron ${points.length}`);
@@ -62,5 +73,7 @@ export function handFeatures(points: HandLandmarks): number[] {
 
   const tipDistances = FINGERS.map((finger) => norm(sub(points[finger[finger.length - 1]], wrist)) / scale);
 
-  return [...angles, ...tipDistances];
+  const tipGaps = ADJACENT_TIP_PAIRS.map(([, a, b]) => norm(sub(points[a], points[b])) / scale);
+
+  return [...angles, ...tipDistances, ...tipGaps];
 }
