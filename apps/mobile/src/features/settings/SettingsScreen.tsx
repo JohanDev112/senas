@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Switch } from "react-native";
+import { View, Text, StyleSheet, Switch, Pressable, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../components/Screen";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
@@ -7,6 +8,21 @@ import { color, font, spacing, type } from "../../theme/tokens";
 import { DEFAULT_SETTINGS, getSettings, updateSettings, type Settings } from "../../storage/settings";
 import { isModelAvailable } from "../../ml/modelClassifier";
 import { getWordReferences } from "../../storage/wordReferences";
+
+const CREDITS_TEXT =
+  "Modelo de letras entrenado con el dataset \"Mexican Sign Language Alphabet\" " +
+  "(CC-BY 4.0) de Ricardo Morfín (2023), Zenodo — doi.org/10.5281/zenodo.10067509.\n\n" +
+  "Deteccion de manos: Google MediaPipe.\n\n" +
+  "Ver NOTICE.md en el repositorio para la atribucion completa.";
+
+function LinkRow({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable style={styles.row} onPress={onPress}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Ionicons name="chevron-forward" size={16} color={color.inkMuted} />
+    </Pressable>
+  );
+}
 
 function Row({ label, sub, value, onChange }: { label: string; sub?: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -80,6 +96,8 @@ export function SettingsScreen() {
         <InfoRow label="Vocabulario de palabras" value={`${wordRefCount} referencia${wordRefCount === 1 ? "" : "s"}`} />
         <View style={styles.separator} />
         <InfoRow label="Version de la app" value="1.0.0 (beta)" />
+        <View style={styles.separator} />
+        <LinkRow label="Creditos y licencias" onPress={() => Alert.alert("Creditos y licencias", CREDITS_TEXT)} />
       </Card>
     </Screen>
   );

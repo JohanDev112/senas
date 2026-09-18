@@ -17,9 +17,8 @@ senas/
 ## Construido con
 
 - [React Native](https://reactnative.dev/) + [Expo](https://expo.dev/) — app móvil (Android, con Dev Client/EAS Build)
-- [MediaPipe Hands](https://google.github.io/mediapipe/solutions/hands) — landmarks de la mano
-- [react-native-fast-tflite](https://github.com/mrousavy/react-native-fast-tflite) — inferencia on-device del modelo entrenado
+- [MediaPipe Hands](https://ai.google.dev/edge/mediapipe) — landmarks de la mano, corriendo como WASM local dentro de la app (ver `apps/mobile/README.md`)
 - [FastAPI](https://fastapi.tiangolo.com/) — backend
 - [TensorFlow](https://www.tensorflow.org/) / [NumPy](https://numpy.org/) — entrenamiento del clasificador en `ml/`
 
-Ver `legacy/README.md` para el prototipo de escritorio original en el que se basó este proyecto.
+Ver `legacy/README.md` para el prototipo de escritorio original en el que se basó este proyecto, y [`NOTICE.md`](NOTICE.md) para la atribución del dataset de entrenamiento (CC-BY 4.0).
