@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Pressable, ScrollView } from "react-native";
 import { color, font, radius, spacing, type } from "../../theme/tokens";
 import { SpeakButton } from "../../components/SpeakButton";
-import { SUGGESTED_WORDS } from "../../data/words";
+import { useDictionaryWords } from "../../storage/dictionaryCache";
 
 function normalizeLetters(word: string): string[] {
   return word
@@ -16,6 +16,7 @@ function normalizeLetters(word: string): string[] {
 export function TextToSign() {
   const [word, setWord] = useState("gracias");
   const letters = useMemo(() => normalizeLetters(word), [word]);
+  const suggestedWords = useDictionaryWords();
 
   return (
     <View style={{ gap: spacing.sm }}>
@@ -28,7 +29,7 @@ export function TextToSign() {
       />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-        {SUGGESTED_WORDS.map((suggestion) => (
+        {suggestedWords.map((suggestion) => (
           <Pressable key={suggestion} style={styles.chip} onPress={() => setWord(suggestion)}>
             <Text style={styles.chipText}>{suggestion}</Text>
           </Pressable>
