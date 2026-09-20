@@ -13,6 +13,7 @@ import { addHistoryEntry } from "../../storage/history";
 export function CameraToWord() {
   const [permission, requestPermission] = useCameraPermissions();
   const { cameraRef, bridgeRef, bridgeReady, setBridgeReady, isRecording, record } = useWordCapture();
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
   const [match, setMatch] = useState<WordMatch | null>(null);
   const [referenceCount, setReferenceCount] = useState<number | null>(null);
   const [newWordName, setNewWordName] = useState("");
@@ -63,12 +64,26 @@ export function CameraToWord() {
     <View style={{ gap: spacing.sm }}>
       <View style={styles.viewfinder}>
         <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="front" />
-        <HandLandmarkerBridge ref={bridgeRef} onReadyChange={setBridgeReady} />
+        <HandLandmarkerBridge ref={bridgeRef} onReadyChange={setBridgeReady} onError={setBridgeError} />
         <View style={styles.liveBadge}>
           <View style={[styles.liveDot, { backgroundColor: isRecording ? "#ff5a5f" : color.inkMuted }]} />
-          <Text style={styles.liveText}>{isRecording ? "GRABANDO" : bridgeReady ? "LISTO" : "CARGANDO…"}</Text>
+          <Text style={styles.liveText}>{isRecording ? "GRABANDO" : bridgeReady ? "LISTO" : bridgeError ? "ERROR" : "CARGANDO…"}</Text>
         </View>
       </View>
+
+      {bridgeError ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{bridgeError}</Text>
+          <Pressable
+            onPress={() => {
+              setBridgeError(null);
+              bridgeRef.current?.reload();
+            }}
+          >
+            <Text style={styles.errorRetry}>Reintentar</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.modeRow}>
         <Pressable style={[styles.modeTab, mode === "recognize" && styles.modeTabActive]} onPress={() => setMode("recognize")}>
@@ -142,6 +157,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
   },
   liveDot: { width: 6, height: 6, borderRadius: 3 },
+  errorBanner: {
+    borderWidth: 1, borderColor: "rgba(226,88,107,0.4)", backgroundColor: "rgba(226,88,107,0.12)",
+    borderRadius: radius.sm, padding: spacing.sm, gap: 6,
+  },
+  errorText: { fontFamily: font.bodyRegular, fontSize: type.caption, color: color.ink, lineHeight: 16 },
+  errorRetry: { fontFamily: font.bodyExtraBold, fontSize: type.caption, color: color.danger },
   liveText: { color: "#fff", fontFamily: font.bodyExtraBold, fontSize: 9.5, letterSpacing: 0.5 },
   modeRow: { flexDirection: "row", gap: 6, backgroundColor: color.surface2, padding: 4, borderRadius: 12 },
   modeTab: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 9 },
