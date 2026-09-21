@@ -5,9 +5,17 @@
  * `detect(base64Jpeg)` por ref, con una tabla de promesas pendientes
  * indexadas por id de mensaje.
  *
- * Requiere un dev client / build con `expo prebuild` -- el archivo
- * file:///android_asset/... no existe corriendo en Expo Go, y tampoco
- * existe en iOS (el plugin de assets solo empaqueta para Android por ahora).
+ * La pagina se sirve por HTTP local (ver localAssetServer.ts), NO por
+ * file:///android_asset/... como en un primer intento: Chromium/WebView
+ * bloquea `fetch()` para el esquema file:// sin excepcion, y el WASM de
+ * MediaPipe usa `fetch()` para cargar su binario -- de ahi el error real en
+ * produccion "both async and sync fetching of the wasm failed". Servir los
+ * mismos archivos por http://127.0.0.1:<puerto>/ evita esa restriccion sin
+ * salir del telefono (el servidor corre embebido en la app).
+ *
+ * Requiere un dev client / build con `expo prebuild` -- no corre en Expo Go,
+ * y por ahora solo en Android (el plugin de assets y localAssetServer.ts
+ * solo cubren esa plataforma).
  *
  * Si la inicializacion falla o tarda demasiado (WebView de sistema
  * desactualizado, poca RAM para el WASM, etc.) se avisa por `onError` en
@@ -19,6 +27,7 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef,
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import type { WebViewErrorEvent } from "react-native-webview/lib/WebViewTypes";
 import type { HandLandmarks } from "./extractFeatures";
+import { getMediapipeServerOrigin } from "./localAssetServer";
 
 export type HandLandmarkerHandle = {
   detect: (base64Jpeg: string) => Promise<HandLandmarks | null>;
@@ -37,7 +46,6 @@ type PendingEntry = {
   timeout: ReturnType<typeof setTimeout>;
 };
 
-const INFERENCE_URL = "file:///android_asset/mediapipe/inference.html";
 const DETECT_TIMEOUT_MS = 1500;
 const INIT_TIMEOUT_MS = 20000;
 
@@ -48,6 +56,7 @@ export const HandLandmarkerBridge = forwardRef<HandLandmarkerHandle, Props>(
     const nextId = useRef(0);
     const [ready, setReady] = useState(false);
     const [reloadKey, setReloadKey] = useState(0);
+    const [pageUrl, setPageUrl] = useState<string | null>(null);
     const reportedError = useRef(false);
 
     const setReadyState = useCallback(
@@ -70,8 +79,27 @@ export const HandLandmarkerBridge = forwardRef<HandLandmarkerHandle, Props>(
     const reload = useCallback(() => {
       reportedError.current = false;
       setReadyState(false);
+      setPageUrl(null);
       setReloadKey((k) => k + 1);
     }, [setReadyState]);
+
+    // arranca el servidor local y resuelve la URL de la pagina antes de
+    // montar el WebView
+    useEffect(() => {
+      let cancelled = false;
+      getMediapipeServerOrigin()
+        .then((origin) => {
+          if (!cancelled) setPageUrl(`${origin}/inference.html`);
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            reportError(`No se pudo arrancar el servidor local de assets: ${String(error)}`);
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [reloadKey, reportError]);
 
     // si nunca llega "ready" (ni tampoco un error explicito), no dejar la
     // pantalla pegada en "cargando" sin explicacion
@@ -143,17 +171,16 @@ export const HandLandmarkerBridge = forwardRef<HandLandmarkerHandle, Props>(
       [setReadyState, reportError]
     );
 
+    if (!pageUrl) return null;
+
     return (
       <WebView
         key={reloadKey}
         ref={webviewRef}
-        source={{ uri: INFERENCE_URL }}
+        source={{ uri: pageUrl }}
         onMessage={handleMessage}
         onError={handleNativeError}
         originWhitelist={["*"]}
-        allowFileAccess
-        allowFileAccessFromFileURLs
-        allowUniversalAccessFromFileURLs
         javaScriptEnabled
         style={{ width: 1, height: 1, position: "absolute", top: 0, left: 0, opacity: 0 }}
         pointerEvents="none"

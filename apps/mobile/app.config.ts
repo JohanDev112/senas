@@ -26,7 +26,7 @@ const config: ExpoConfig = {
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: false,
-    permissions: ["android.permission.CAMERA"],
+    permissions: ["android.permission.CAMERA", "android.permission.INTERNET"],
   },
   web: {
     favicon: "./assets/favicon.png",
@@ -43,6 +43,18 @@ const config: ExpoConfig = {
       },
     ],
     "./plugins/withMediapipeAssets",
+    "./plugins/withNoCompressWasm",
+    [
+      "expo-build-properties",
+      {
+        // el WebView carga el bundle de MediaPipe desde el servidor HTTP
+        // local embebido en la app (ver src/ml/localAssetServer.ts), no
+        // desde file:// -- Android bloquea trafico HTTP plano por default
+        // desde API 28, hay que habilitarlo explicitamente para el
+        // loopback (127.0.0.1).
+        android: { usesCleartextTraffic: true },
+      },
+    ],
   ],
   extra: {
     router: {},

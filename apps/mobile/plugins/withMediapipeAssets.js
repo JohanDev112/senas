@@ -7,12 +7,16 @@ const path = require("path");
  * tal cual, sin pasar por el pipeline de hashing de Metro, dentro de
  * android/app/src/main/assets/mediapipe/.
  *
- * El WebView headless de src/ml/handLandmarker carga
- * file:///android_asset/mediapipe/inference.html, y ese HTML hace fetch()
- * relativo de sus archivos hermanos (vision_wasm_internal.wasm,
- * hand_landmarker.task) -- eso solo funciona con los nombres de archivo
- * originales intactos y sirviendolos desde la carpeta real de assets de
- * Android, no con URIs de assets de Expo/Metro (que van con hash).
+ * De ahi, src/ml/localAssetServer.ts los copia otra vez (via
+ * `copyFileAssets` de @dr.pogodin/react-native-fs) a un directorio real en
+ * disco y los sirve por HTTP local para que el WebView headless de
+ * src/ml/handLandmarker.tsx los cargue -- ese doble paso hace falta porque
+ * los assets de un APK viven empacados, no como archivos sueltos, y porque
+ * Chromium/WebView bloquea `fetch()` para file:// (el WASM de MediaPipe usa
+ * fetch() internamente). Los nombres de archivo originales tienen que
+ * quedar intactos (no las URIs con hash de Expo/Metro) porque
+ * inference.html hace fetch() relativo de sus archivos hermanos
+ * (vision_wasm_internal.wasm, hand_landmarker.task).
  */
 function copyRecursiveSync(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
