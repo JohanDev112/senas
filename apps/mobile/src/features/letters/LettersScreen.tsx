@@ -15,8 +15,18 @@ import { addHistoryEntry } from "../../storage/history";
 export function LettersScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
-  const { cameraRef, bridgeRef, bridgeReady, onBridgeReadyChange, prediction, transcript, clear } =
-    useLetterRecognition();
+  const {
+    cameraRef,
+    bridgeRef,
+    bridgeReady,
+    onBridgeReadyChange,
+    bridgeError,
+    onBridgeError,
+    retryBridge,
+    prediction,
+    transcript,
+    clear,
+  } = useLetterRecognition();
   const [detailOpen, setDetailOpen] = useState(false);
   const transcriptRef = useRef(transcript);
   transcriptRef.current = transcript;
@@ -64,18 +74,28 @@ export function LettersScreen() {
 
       <View style={styles.viewfinder}>
         <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="front" />
-        <HandLandmarkerBridge ref={bridgeRef} onReadyChange={onBridgeReadyChange} />
+        <HandLandmarkerBridge ref={bridgeRef} onReadyChange={onBridgeReadyChange} onError={onBridgeError} />
 
-        <View style={styles.liveBadge}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>{bridgeReady ? "EN VIVO" : "CARGANDO…"}</Text>
-        </View>
+        {bridgeError ? (
+          <View style={styles.errorOverlay}>
+            <Ionicons name="warning" size={22} color={color.danger} />
+            <Text style={styles.errorText}>{bridgeError}</Text>
+            <Button label="Reintentar" onPress={retryBridge} style={{ marginTop: spacing.sm }} />
+          </View>
+        ) : (
+          <>
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>{bridgeReady ? "EN VIVO" : "CARGANDO…"}</Text>
+            </View>
 
-        {prediction ? (
-          <Pressable style={styles.letterChip} onPress={() => setDetailOpen(true)}>
-            <Text style={styles.letterChipText}>{prediction.letter}</Text>
-          </Pressable>
-        ) : null}
+            {prediction ? (
+              <Pressable style={styles.letterChip} onPress={() => setDetailOpen(true)}>
+                <Text style={styles.letterChipText}>{prediction.letter}</Text>
+              </Pressable>
+            ) : null}
+          </>
+        )}
       </View>
 
       <View style={styles.transcript}>
@@ -139,6 +159,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#ff5a5f" },
+  errorOverlay: {
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: "center", justifyContent: "center", padding: spacing.lg, gap: spacing.xs,
+    backgroundColor: "rgba(12,10,18,0.92)",
+  },
+  errorText: { fontFamily: font.bodyRegular, fontSize: type.caption, color: color.ink, textAlign: "center", lineHeight: 17 },
   liveText: { color: "#fff", fontFamily: font.bodyExtraBold, fontSize: 9.5, letterSpacing: 0.5 },
   letterChip: {
     position: "absolute", right: 12, bottom: 12, width: 52, height: 52, borderRadius: 14,

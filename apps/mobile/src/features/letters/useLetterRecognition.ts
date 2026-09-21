@@ -16,6 +16,7 @@ export function useLetterRecognition() {
   const lastAppendAtRef = useRef(0);
 
   const [bridgeReady, setBridgeReady] = useState(false);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<LetterPrediction | null>(null);
   const [transcript, setTranscript] = useState("");
 
@@ -62,11 +63,19 @@ export function useLetterRecognition() {
     lastAppendAtRef.current = 0;
   }, []);
 
+  const retryBridge = useCallback(() => {
+    setBridgeError(null);
+    bridgeRef.current?.reload();
+  }, []);
+
   return {
     cameraRef,
     bridgeRef,
     bridgeReady,
     onBridgeReadyChange: setBridgeReady,
+    bridgeError,
+    onBridgeError: setBridgeError,
+    retryBridge,
     prediction,
     transcript,
     clear,
