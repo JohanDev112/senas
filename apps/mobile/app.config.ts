@@ -43,6 +43,7 @@ const config: ExpoConfig = {
       },
     ],
     "./plugins/withMediapipeAssets",
+    "./plugins/withNoCompressWasm",
   ],
   extra: {
     router: {},
