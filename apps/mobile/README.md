@@ -6,10 +6,10 @@ con la cámara, 100% on-device y offline, con un modo Beta de palabras.
 ## Por qué no corre en Expo Go
 
 La detección de manos usa un WebView headless con el WASM oficial de
-MediaPipe cargado desde `file:///android_asset/...` (ver
-`src/ml/handLandmarker.tsx` y `plugins/withMediapipeAssets.js`). Eso solo
-existe despues de `expo prebuild`, así que este proyecto necesita un
-**Dev Client** (o un build de EAS), no Expo Go.
+MediaPipe, servido por un servidor HTTP local embebido en la propia app
+(ver "Cómo se conecta con `ml/`" abajo) y un plugin de assets que solo
+existe despues de `expo prebuild`. Este proyecto necesita un **Dev
+Client** (o un build de EAS), no Expo Go.
 
 ## Correr en desarrollo
 
@@ -47,6 +47,11 @@ El perfil `preview` de `eas.json` genera un `.apk` instalable directo (no
   el modelo `hand_landmarker.task` de Google, para que la detección de
   landmarks funcione sin red. `plugins/withMediapipeAssets.js` los copia
   a `android/app/src/main/assets/mediapipe/` en cada `expo prebuild`.
+  `src/ml/localAssetServer.ts` los copia una vez más a un directorio real
+  en disco (`copyFileAssets`) y los sirve por `http://127.0.0.1:<puerto>/`
+  con `@dr.pogodin/react-native-static-server` — el WebView headless carga
+  esa URL, no `file://`, porque Chromium bloquea `fetch()` para ese
+  esquema sin excepción y el WASM de MediaPipe lo usa internamente.
 
 ## Pendiente / roadmap
 
